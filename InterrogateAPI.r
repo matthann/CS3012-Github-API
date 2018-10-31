@@ -42,7 +42,14 @@ myData = fromJSON("https://api.github.com/users/matthann")
 myData$followers       # lots 
 myData$public_repos
 
-# The blow returns specific details about my followers.
+# The below returns specific details about my followers.
 myFollowers <- fromJSON("https://api.github.com/users/matthann/followers")
 myFollowers$login   # the usernames of all users who follow me 
 length <- length(myFollowers$login) # the amount of people who follow me
+
+# The below returns specific details about my repositories.
+repositories <- fromJSON("https://api.github.com/users/matthann/repos")
+repositories$name # names of my public repositories
+repositories$created_at # creation dates of my repositories
+assignment <- fromJSON("https://api.github.com/repos/matthann/Python/commits")
+assignment$commit$message # the message I included in each commit to my Python repository
