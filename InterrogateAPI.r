@@ -33,4 +33,16 @@ gitDF[gitDF$full_name == "jtleek/datasharing", "created_at"]
 # The code above was sourced from Michael Galarnyk's blog, found at:
 # https://towardsdatascience.com/accessing-data-from-github-api-using-r-3633fb62cb08
 
+# -----------------------------------------------------------------------------------
 
+# Step1: Interrogating the GitHub API.  
+
+# The below will return the number of followers and public repositories in my personal GitHub.
+myData = fromJSON("https://api.github.com/users/matthann")
+myData$followers       # lots 
+myData$public_repos
+
+# The blow returns specific details about my followers.
+myFollowers <- fromJSON("https://api.github.com/users/matthann/followers")
+myFollowers$login   # the usernames of all users who follow me 
+length <- length(myFollowers$login) # the amount of people who follow me
