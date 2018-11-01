@@ -53,3 +53,12 @@ repositories$name # names of my public repositories
 repositories$created_at # creation dates of my repositories
 assignment <- fromJSON("https://api.github.com/repos/matthann/Python/commits")
 assignment$commit$message # the message I included in each commit to my Python repository
+
+# The below returns details about other people's githubs.
+healys10 <- fromJSON("https://api.github.com/users/healys10/following")
+healys10$login
+
+# Instead of viewing this information in a dataframe, I can convert it back to a JSON
+
+myDataJSon <- toJSON(myData, pretty = TRUE)
+myDataJSon
