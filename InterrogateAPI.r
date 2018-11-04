@@ -19,7 +19,7 @@ gtoken <- config(token = github_token)
 req <- GET("https://api.github.com/users/jtleek/repos", gtoken)
 
 # take action on http error
-shop_for_status(req)
+stop_for_status(req)
 
 # extract content from a request
 json1 = content(req)
