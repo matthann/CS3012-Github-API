@@ -72,7 +72,7 @@ library(plotly)
 
 
 # usernames that user 'andrew' is following
-andrewFollowing = GET("https://api.github.com/users/andrew/following", gtoken)
+andrewFollowing = GET("https://api.github.com/users/jtleek/following", gtoken)
 andrewFollowingContent = content(andrewFollowing)
 
 # each of those users' data
@@ -91,7 +91,6 @@ allusers.DF = data.frame(
   Repositories = integer(),
   DateCreated = integer()
 )
-
 
 # loop through all usernames to add 
 for (i in 1:length(usernames))
@@ -152,12 +151,12 @@ for (i in 1:length(usernames))
   next
 }
 
+# Link Github interrogation visual plots with plot.ly account
 Sys.setenv("plotly_username" = "matthann")
 Sys.setenv("plotly_api_key" = "2RxIwHTVyLoeHMfu0Kx2")
 
-# scatter plot of Followers vs. Repositories for each user,
-# colour coded by year they joined GitHub 
-plot1 = plot_ly(data = AllUsersDF, x = ~Repositories, y = ~Followers, 
+# Visual 1: Scatter plot of Followers vs. Repositories for each user, colour coded by year they joined GitHub
+plot1 = plot_ly(data = allusers.DF, x = ~Repositories, y = ~Followers, 
                   text = ~paste("Followers: ", Followers, "<br>Repositories: ", 
                                 Repositories, "<br>Date Created:", DateCreated), color = ~DateCreated)
 plot1
@@ -165,3 +164,11 @@ plot1
 api_create(plot1, filename = "Followers vs. Repositories")
 # Link: https://plot.ly/~matthann/1/#/
 
+
+# Visual 2: Scatter plot of Followers vs. Following for each user
+plot2 = plot_ly(data = allusers.DF, x = ~Following, y = ~Followers, text = ~paste("Following: ", Following, 
+                                                                                  "<br>Followers: ", Followers))
+plot2
+
+api_create(plot2, filename = "Followers vs. Following")
+# https://plot.ly/~matthann/3/
