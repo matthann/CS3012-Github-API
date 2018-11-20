@@ -66,6 +66,8 @@ myDataJSon
 
 #  ----- Assignment 5: Visualisation with Github Interrogation 
 
+# Gather data required for visualisations
+
 #install.packages("plotly")
 require(devtools)
 library(plotly)
@@ -151,9 +153,13 @@ for (i in 1:length(usernames))
   next
 }
 
+
+# Begin visualisations
+
 # Link Github interrogation visual plots with plot.ly account
 Sys.setenv("plotly_username" = "matthann")
 Sys.setenv("plotly_api_key" = "2RxIwHTVyLoeHMfu0Kx2")
+
 
 # Visual 1: Scatter plot of Followers vs. Repositories for each user, colour coded by year they joined GitHub
 plot1 = plot_ly(data = allusers.DF, x = ~Repositories, y = ~Followers, 
@@ -172,3 +178,61 @@ plot2
 
 api_create(plot2, filename = "Followers vs. Following")
 # https://plot.ly/~matthann/3/
+
+
+
+# information not needed yet 
+# colSums(Filter(is.numeric, allusers.DF))
+
+
+# Visual 3: Bar chart of most popular languages used by each user 
+
+# empty vector 
+languages = c()
+
+for (i in 1:length(allusers))
+{
+  repos_url = paste("https://api.github.com/users/", allusers[i], "/repos", sep = "")
+  repos = GET(repos_url, gtoken)
+  reposContent = content(repos)
+  repos.DF = jsonlite::fromJSON(jsonlite::toJSON(reposContent))
+  
+  # names of repositories for each individual user
+  repos_names = repos.DF$name
+  
+  # loop through each repository belonging to specific user
+  for (j in 1: length(repos_names))
+  {
+    repos_url2 = paste("https://api.github.com/repos/", allusers[i], "/", repos_names[j], sep = "")
+    repos2 = GET(repos_url2, gtoken)
+    repos2Content = content(repos2)
+    repos2.DF = jsonlite::fromJSON(jsonlite::toJSON(repos2Content))
+    
+    # language of repository
+    language = repos2.DF$language
+    
+    # skip repository if it has no language
+    if (length(language) != 0 && language != "<NA>")
+    {
+      # add language to list
+      languages[length(languages)+1] = language
+    }
+    next
+  }
+  next
+}
+
+# top 20 languages saved in a table
+language_table = sort(table(languages), increasing=TRUE)
+language_table_top20 = language_table[(length(language_table)-19):length(language_table)]
+
+# table converted to dataframe
+language.DF = as.data.frame(language_table_top20)
+
+# plotting dataframe of languages 
+plot3 = plot_ly(data = language.DF, x = language.DF$languages, y = language.DF$Freq, type = "bar")
+plot3
+
+api_create(plot3, filename = "20 Most Popular Languages")
+# https://plot.ly/~matthann/5/
+
