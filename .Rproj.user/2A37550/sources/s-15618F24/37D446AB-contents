@@ -1,0 +1,116 @@
+require(fma)
+require(fpp2)
+require(tseries)
+require(ggplot2)
+head(cpimel)
+
+raw_data = as.matrix(cpimel)
+auto.arima(cpimel)
+# Step 1 ----------------------- Differencing -----------------------
+
+adf.test(cpimel)    # p value > 0.05 hence it is non stationary and needs differencing
+
+acf(cpimel,lag.max=1,plot=FALSE)
+# If series has positive autocorrelation to a high number of lags, then it probably needs a high order of differencing
+# a negative lag-1 autocorrelation should never be greater than absolute -0.5.
+
+diff1 = diff(cpimel)
+
+acf(diff1,lag.max=1,plot=FALSE)   # 0.271 
+# IF LAG-1 is zero or negative then the series does not need further differencing
+
+diff2 = diff(diff1)
+
+acf(diff2,lag.max=1,plot=FALSE)     # -0.57     ... is it overdifferenced?
+
+
+# rmse is an absolute measure of fit - or std dev of the unexplained variance
+# lower values of rmse indicate a better fit
+# optimal order of differencing is the order of differencing at which the std dev is lowest
+summary(arima(cpimel, order=c(0,0,0)))
+summary(arima(cpimel, order=c(0,1,0)))
+summary(arima(cpimel, order=c(0,2,0)))
+# these three above confirm that differencing = 2 is the best for cpimel data set
+
+
+# Step 2 ----------------------- Assignment -----------------------
+
+BIC(log(cpimel))
+
+# NaNs produced if AR coefficients almost exactly 1 
+summary(arima(cpimel, order=c(1,0,1)))   # aic = 196.09, rmse = 1.112574
+# AR coefficient is almost exactly equal to 1, ie this AR(1) has a unit root.
+# this means that the AR(1) is precisely mimicking a first difference, in which case
+# you should remove an AR(1) term and add an order of differencing instead.
+# In a higher order AR model, a unit root exists in the AR part if the AR coefficients
+# all add up to 1. A time series with a unit root in the AR is nonstationary and it 
+# needs a higher order of differencing.
+
+fit = arima(cpimel, order=c(0,1,1))
+fit
+
+summary(arima(cpimel, order=c(1,0,1)))   # aic = 189.83, rmse = 1.098406
+arima(cpimel, order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4))
+summary(arima(cpimel, order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4)))     # aic = 146.43, rmse = 0.7898389
+?Arima
+
+Arima(cpimel, order=c(1,0,1))$bic
+Arima(cpimel,order=c(0,1,1))$bic
+Arima(cpimel,order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4))$bic
+
+
+# Step 2 ----------------------- ACF / PACF -----------------------
+
+acf(cpimel)
+pacf(cpimel)
+ 
+# if differencing is not done, then AR(1) model should be performed as partial autocorrelation is significant
+# at lag 1 and not at any higher order lags
+
+# if the pacf displays a sharp cut off while the acf decays more slowly, we say that the stationary series 
+# displays an 'AR signature' meaning that the autocorrelation pattern can be explained more easily by adding
+# AR terms than by adding MA terms. An AR signature is commonly associated with positive autocorrelation at 
+# lag 1 and tends to arise in series which are slightly underdifferenced.
+
+# below series is slightly under differenced, has an AR signature, its autocorrelation pattern is more easily
+# explained by adding to the AR term than the MA term (larger decrease in aic)
+Arima(cpimel, order=c(0,1,0))  # aic = 213.82   bic = 215.93
+Arima(cpimel, order=c(1,1,0))  # aic = 156.65   bic = 160.88
+Arima(cpimel, order=c(0,1,1))  # aic = 189.83   bic = 194.05
+ 
+# if the acf of the differenced series displays a sharp cut off and/or the lag-1 autocorrelation is negative
+# ie, if the series appears slightly "over differenced" then consider adding an MA term to the model.
+# the lag at which the ACF cuts off is the indicated number of MA terms 
+acf(diff2)
+acf(diff2,lag.max=1,plot=FALSE) # lag-1 autocorrelation is negative
+arima(cpimel,order=c(0,2,0))   # aic = 157.88
+arima(cpimel,order=c(1,2,0))   # aic = 136.27
+arima(cpimel,order=c(0,2,1))   # aic = 130.87
+
+
+
+# ----- 2nd part of assignment .. predicting yn+1
+data = as.matrix(cpimel)
+x.t = as.matrix(data[1:61,])
+y.t = as.matrix(data[2:62,])
+
+linear_regressor = lm(y.t ~ x.t)
+# null hypothesis is that correlation = 0
+# low p value means reject null hypothesis, ie strong correlation 
+summary(linear_regressor)       # x.t coefficient = 0.99189 , intercept = 1.83962
+
+y.t_hat = matrix(data = NA, 61, ncol=1)    # y.t_hat = 1.83962 + 0.99189*x.t
+
+#------ think all above is wrong fml
+data = as.matrix(cpimel)
+x.t = as.matrix(data[1:61,])
+y.t = as.matrix(data[2:62,])
+
+cpimel
+
+s = (y.t[61] - (2+0.5*x.t[61]))^2
+
+y.tnext =  2 + 0.5*x.t[61] 
+
+y.t[61]
+

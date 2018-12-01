@@ -1,0 +1,63 @@
+#install.packages("fma")
+require(fma)
+require(fpp2)
+require(tseries)
+require(ggplot2)
+
+# data 
+
+series <- read.csv("P3timeseriesStudent.csv", header = FALSE)
+
+tsdisplay(series)  
+tsdata=ts(series,frequency=12)
+
+auto.arima(tsdata) #
+
+acf(series)
+
+plot(decompose(tsdata))
+
+ggseasonplot(ts(series,freq=12))
+
+# q 1 picking arima model 
+
+arima1 = Arima(tsdata,order=c(0,0,0),seasonal=c(0,1,0))$residuals
+arima2 = Arima(tsdata,order=c(0,0,0),seasonal=c(0,2,0))$residuals
+
+tsdisplay(arima1)
+
+tsdata %>% diff(lag=12) %>% ggtsdisplay()
+
+tsdata %>% diff(lag=12) %>% diff() %>% ggtsdisplay()
+
+# now have an ARIMA(0,1,2)(0,1,1)_12 model
+
+# by the same logic applied to the same PACF, we could also have an ARIMA(2,1,0)(1,1,0)_12, 
+# however this model results in a higher aic
+
+tsdata %>% Arima(order=c(0,1,2),seasonal=c(0,1,1)) %>% residuals %>% ggtsdisplay()
+
+
+model <- Arima(tsdata,order=c(0,1,2),seasonal=c(0,1,1))
+
+model2 <- Arima(tsdata,order=c(2,1,0),seasonal=c(1,1,0))
+
+auto_model = auto.arima(tsdata)
+auto_model 
+
+checkresiduals(model)
+
+model %>% forecast(h=12) %>% autoplot()
+
+forecast(model,h=18)
+
+
+
+
+
+
+
+
+
+
+

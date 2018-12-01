@@ -1,0 +1,112 @@
+install.packages("fma")
+install.packages("fpp2")
+require(fma)
+require(fpp2)
+
+# 1 ----------------------- Visualisation of Data -----------------------
+
+plot(cpimel)  # clear upward trend 
+seasonplot(cpimel)    # default frequency of 4
+plot(decompose(cpimel))     # decomposes observed data into seasonal, trend and random components
+plot(diff(cpimel))
+ggtsdisplay(cpimel)
+
+# In looking at the graphs, there is an evident upward trend. In looking at the random components in the 
+# decomposition, this represents the components of the overall trend that cannot be predicted. They have 
+# no discernible pattern and are completely random. The seasonality component is minimal, but because it 
+# is present, there is a slight seasonal trend in the data.
+# If one plots the difference in values from the data, it is seen that the differences are relatively stationary.
+# Even though there are a few strong cyces, they are acyclic and in the long-term are not predictable. 
+
+# With the ACF, we are always comparing the CPI in one quarter, with all of the previous quarters. So it is useful 
+# here, as the CPI between successive quarters does change, but usually not as much as it does from one year to the
+# next. So, here, we would expect successive values to have a reasonable amount of correlation. This means that with
+# each successive quarter in the cpimel data set, the correlations become less significant with previous values as
+# time goes on.
+# This PACF shows us that the most recent cpimel data point is the most relevant in deciding the next cpimel.
+# It means that before the most recent cpimel data point, there's not actually a lot of information in the quarter's 
+# before that to use. Thus, the most recent data point is the most relevant to use as it tells us the most information.
+
+# Because there appears to be a seasonal component in the decomposition of the data, this would suggest that the 
+# best predictive models in forecasting future values would be those that take seasonality into account. Thus, 
+# based on visuals alone, we would expect to use either of the two Seasonal Holt Winters Algorithms. However, it 
+# is best to choose the algorithm that results in the smallest value for the sum of squared errors. 
+
+#------------------------------------------------------------------------
+
+
+# 2 ----------------------- Holt Winters Algorithms ---------------------
+
+# SES uses only the smoothing constant, alpha. DES uses two smoothing constants, alpha and beta. Both
+# Seasonal Holt Winters models use three smoothing constants: alpha, beta and gamma.
+# Each model chooses their smoothing constants by choosing the smoothing constants that minimise their
+# respective sum of squared errors. We would, at this stage, based on visuals, expect one of the two 
+# Seasonal Holt Winters algorithms to result in the lowest value for SSE.
+
+# Single Exponential Smoothing
+HoltWinters(cpimel,beta=FALSE,gamma=FALSE)$SSE    # SSE = 115.0692
+# The SSE is extremely large meaning that the forecast of future values is most likely unreliable. 
+# This is confirmed by an unusual plot. 
+plot(forecast(HoltWinters(cpimel,beta=FALSE,gamma=FALSE)))   
+
+# Double Exponential Smoothing
+HoltWinters(cpimel,gamma=FALSE)$SSE     # SSE = 28.26443
+# This below plot is the most accurate of the four, as explained below.
+plot(forecast(HoltWinters(cpimel,gamma=FALSE)))
+
+# Seasonal Holt Winters: Additive - SHW+
+HoltWinters(cpimel,seasonal="additive")$SSE      # SSE = 33.72781 
+plot(forecast(HoltWinters(cpimel,seasonal="additive")))
+
+# Season Holt Winters: Multiplicative - SHWx
+HoltWinters(cpimel,seasonal="multiplicative")$SSE        # SSE = 34.57654
+plot(forecast(HoltWinters(cpimel,seasonal="multiplicative")))
+
+# The model for forecasting that should be used is the one which results in the lowest value for the sum of squared errors.
+# In this case, it is double exponential smoothing. This is not what we expected from the visualisation, but clearly, the 
+# overall trend and the random components are more important in this model than the seasonal element of the decomposition.
+# This is likely because the seasonal component values are low, so their effects are almost negligible. 
+# Hence, double exponential smoothing is the best algorithm used to forecast future values for this dataset. 
+
+#------------------------------------------------------------------------
+
+
+# 3 -------------------- Best Selected Algorithm: DES -------------------
+
+DES = forecast(HoltWinters(cpimel,gamma=FALSE), h=3)
+plot(DES)
+best = summary(DES)
+
+# The above plot shows the forecasted values for the forecasted values predicted by double exponential smoothing.
+# These forecasted values appear on the plot as a blue line with a surrounding grey area. The blue line represents
+# the future forecasted values with 80% confidence while the grey area represents the future forecasted values 
+# with 95% confidence.
+# 'best' shows a summary table with info relating to the forecasted values as predicted by DES. This summary 
+# contains the chosen values for the smoothing parameters, alpha and beta, future forecasted values and also,
+# the confidence intervals associated with these future forecasted values.
+# The plot and summary table would relate to one another in that their predicted values would be equal.
+
+#------------------------------------------------------------------------
+
+
+# 4 ----------------------- Meaning of the Results  ---------------------
+
+# From the plot of cpimel, it is seen that there is an overall upward trend. Almost every quarter's CPI increased   
+# over the previous quarter's value. One particular quarter does not appear to increase more so than any other quarter,
+# as seen by the plot of diff(cpimel),
+# Due to the fact that there is an overall upward trend, it would make sense for this overall trend to continue.
+# This would result in expected future values that are all increasingly larger than the last datapoint in the
+# cpimel dataset.
+# In calculating the sum of squared errors for the 4 models - single exponential smoothing, double exponential smoothing 
+# (DES), additive seasonal holt winters and multiplicative seasonal holt winters, DES resulted in the lowest value for 
+# sum of squared errors (SSE). The value of the SSE for DES was chosen by using the values of alpha and beta that 
+# minimised the SSE. The values for alpha and beta chosen, respectively, were: 0.8167533 and 0.4824598.
+# In DES, alpha smooths the level component and beta smooths the trend component. The greater these values to 1, the 
+# greater the influence of the most recent value. 
+# Because DES resulted in the lowest SSE, its forecasted values are most reliable. These forecasted values are as 
+# expected in that the overall upward trend continues. The DES forecasts are:
+# 1995 Q3: 117.4077           80% confidence interval: [116.5207,118.2947] -- 95% confidence interval: [116.0512,118.7642]
+# 1995 Q4: 118.6720           80% confidence interval: [117.2791, 120.0649] -- 95% confidence interval: [116.5418, 120.8022]
+# 1996 Q1: 119.9363           80% confidence interval: [117.9447, 129.9279] -- 95% confidence interval: [116.8905, 122.9822]
+
+#------------------------------------------------------------------------

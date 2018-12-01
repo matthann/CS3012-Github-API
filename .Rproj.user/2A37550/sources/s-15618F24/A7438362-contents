@@ -1,0 +1,149 @@
+#install.packages("fma")
+require(fma)
+require(fpp2)
+require(tseries)
+require(ggplot2)
+
+# data 
+
+series <- read.csv("P3timeseriesStudent.csv", header = FALSE)
+
+tsdisplay(series)  # upward trend, positive autocorrelations to a high number of lags so probably needs a higher order of differencing
+tsdata=ts(series,frequency=12)
+
+auto.arima(tsdata) #
+
+acf(series)
+
+plot(decompose(tsdata)) #stationary in variance, non-stationary in mean 
+
+ggseasonplot(ts(series,freq=12))
+
+# q 1 picking arima model 
+
+arima1 = Arima(tsdata,order=c(0,0,0),seasonal=c(0,1,0))$residuals
+arima2 = Arima(tsdata,order=c(0,0,0),seasonal=c(0,2,0))$residuals
+
+tsdisplay(arima1)
+
+# data is clearly non-stationary, with some seasonality so we first take a seasonal difference
+
+tsdata %>% diff(lag=12) %>% ggtsdisplay()
+
+# also appear non stationary, so we will take an additional first difference
+
+tsdata %>% diff(lag=12) %>% diff() %>% ggtsdisplay()
+
+# data appears stationary.. now find ar and ma terms based on acf and pacf 
+
+# the significant spike at lag 2 in acf suggests a non-seasonal MA(2) component
+
+# significant spike at lag 12 in the ACF suggests a seasonal MA(1) component
+
+# now have an ARIMA(0,1,2)(0,1,1)_12 model
+
+# by the same logic applied to the same PACF, we could also have an ARIMA(2,1,0)(1,1,0)_12, 
+# however this model results in a higher aic
+
+
+
+tsdata %>% Arima(order=c(0,1,2),seasonal=c(0,1,1)) %>% residuals %>% ggtsdisplay()
+
+# after this plot, if there were more significant spikes at any of the lags, 
+# it would indicate that some additional non-seasonal terms need to be included in the model
+# however, there are no significant spikes, hence this is the arima model we choose
+
+#plotting the residuals of our chosen arima model:ARIMA(0,1,2)(0,1,1)_12
+
+model <- Arima(tsdata,order=c(0,1,2),seasonal=c(0,1,1))
+model   # aic = 415.58
+summary(model)   #rmse = 2.2 
+model2 <- Arima(tsdata,order=c(2,1,0),seasonal=c(1,1,0))
+model2   # aic = 421.8
+summary(model2)    #rmse = 2.37
+
+auto_model = auto.arima(tsdata)
+auto_model    # auto arima gives the same as my optimal model 
+
+checkresiduals(model)
+
+# residuals are plotted above, showing that all the spikes are within the significance limits
+# hence residuals appear to be white noise
+# the ljung-box test also returns a p-value of 0.5977, showing that the residuals have no remaining autocorrelations
+
+model %>% forecast(h=12) %>% autoplot()
+
+# q2 forecasting future values from chosen model
+forecast(model,h=18)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# further exploratory analysis -------------------------------------
+
+
+
+# finding optimal order of differencing 
+
+#correct amount of differencing is the lowest order of differencing that yields a 
+#time series which fluctuates around a well defined mean value and whose ACF plot decays fairly rapidly to 0
+
+acf(tsdata) # ********** if positive autocorrelations out to a high number of lags, then it needs differencing
+pacf (tsdata)
+
+tsdifference1 = diff(tsdata,lag=12,differences=1)
+tsdifference2 = diff(tsdifference1)
+plot(tsdifference1)
+acf(tsdifference1)    # period = 12
+acf(tsdifference2)    # period = 12
+
+# one order of differencing assumes original series has a constant average trend 
+# eg a random walk or SES-type model, with or without growth
+
+pacf(tsdifference1)    #             ****************** as below
+pacf(tsdifference2)    # period = 12     
+
+# differencing tends to introduce negative correlation
+# if series initially shows strong positive autocorrelation, then a 
+# nonseasonal difference will reduce the autocorrelation and perhaps even
+# drive the lag-1 autocorrelation to a negative value. 
+# If you apply a second nonseasonaldifference, the lag-1 autocorrelation will be 
+# driven further into the negative.
+# if the lag-1 autocorrelation is zero or even negative, then the series does not need 
+# further differencing. If it is more negative than -0.5, then it is overdifferenced.
+# pacf of series with d = 2 in this case has been over differenced.
+# time series plot of an overdifferenced series may look quite random at first glance, but if you 
+# look closer you will see a pattern of excessive changes in sign between observations.
+
+plot_diff1 = plot(tsdifference1)
+plot_diff2 = plot(tsdifference2)
+
+arima1 = arima(tsdata,order=c(0,0,0),seasonal=c(0,0,0))
+arima1_residuals = arima(tsdata,order=c(0,0,0),seasonal=c(0,0,0))$residuals
+
+tsdisplay(arima1_residuals)
+
+# mild underdifferencing can be compensated for by adding AR terms to the model
+# mild overdifferencing can be compensated for by adding MA terms
+
+
+arima0 = arima(tsdata,order=c(0,0,0))
+arima1 = arima(tsdata,order=c(0,1,0))
+arima2 = arima(tsdata,order=c(0,2,0))
+
+summary(arima0)  #rmse = 7.1
+summary(arima1)  #rmse = 3.61  *******************************************
+summary(arima2)  #rmse = 5.75
+
+#----------------------------------------------------------------
+
+

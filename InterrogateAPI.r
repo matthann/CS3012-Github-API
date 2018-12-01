@@ -5,6 +5,11 @@ library(httpuv)
 #install.packages("httr")
 library(httr)
 
+#install.packages("plotly")
+require(devtools)
+library(plotly)
+
+
 oauth_endpoints("github")
 
 myapp <- oauth_app(appname = "CS3012-Github-API",
@@ -15,7 +20,7 @@ myapp <- oauth_app(appname = "CS3012-Github-API",
 github_token <- oauth2.0_token(oauth_endpoints("github"), myapp)
 
 # use API
-gtoken <- config(token = github_token)
+gtoken <- httr::config(token = github_token)
 req <- GET("https://api.github.com/users/matthann/repos", gtoken)
 
 # take action on http error
@@ -68,15 +73,10 @@ myDataJSon
 
 # Gather data required for visualisations
 
-#install.packages("plotly")
-require(devtools)
-library(plotly)
-
-
 # usernames that user 'andrew' is following
 andrewFollowing = GET("https://api.github.com/users/jtleek/following", gtoken)
 andrewFollowingContent = content(andrewFollowing)
-
+andrewFollowingContent
 # each of those users' data
 andrewFollowing.DF = jsonlite::fromJSON(jsonlite::toJSON(andrewFollowingContent))
 
@@ -172,7 +172,7 @@ api_create(plot1, filename = "Followers vs. Repositories")
 
 
 # Visual 2: Scatter plot of Followers vs. Following for each user
-plot2 = plot_ly(data = allusers.DF, x = ~Following, y = ~Followers, text = ~paste("Following: ", Following, 
+plot2 = plot_ly(data = allusers.DF, x = ~Following, y = ~Followers,colorscale='Viridis', text = ~paste("Following: ", Following, 
                                                                                   "<br>Followers: ", Followers))
 plot2
 
@@ -185,12 +185,12 @@ api_create(plot2, filename = "Followers vs. Following")
 # colSums(Filter(is.numeric, allusers.DF))
 
 
-# Visual 3: Bar chart of most popular languages used by each user 
+# Data required for visual 3: Bar chart of most popular languages used by each user 
 
 # empty vector 
 languages = c()
 
-for (i in 1:length(allusers))
+for (i in 1:length(allusers.DF))
 {
   repos_url = paste("https://api.github.com/users/", allusers[i], "/repos", sep = "")
   repos = GET(repos_url, gtoken)
@@ -204,7 +204,7 @@ for (i in 1:length(allusers))
   for (j in 1: length(repos_names))
   {
     repos_url2 = paste("https://api.github.com/repos/", allusers[i], "/", repos_names[j], sep = "")
-    repos2 = GET(repos_url2, gtoken)
+    repos2 = GET(repos_url2, g2token)
     repos2Content = content(repos2)
     repos2.DF = jsonlite::fromJSON(jsonlite::toJSON(repos2Content))
     
@@ -229,10 +229,45 @@ language_table_top20 = language_table[(length(language_table)-19):length(languag
 # table converted to dataframe
 language.DF = as.data.frame(language_table_top20)
 
-# plotting dataframe of languages 
+# Visual 3: Bar chart of most popular languages used in repositories 
 plot3 = plot_ly(data = language.DF, x = language.DF$languages, y = language.DF$Freq, type = "bar")
 plot3
 
 api_create(plot3, filename = "20 Most Popular Languages")
 # https://plot.ly/~matthann/5/
+
+
+
+
+
+# Visualisation 4: heatmap of number of followers by geographical location
+
+followers.DF = allusers.DF$Followers
+plot4 = plot_ly(allusers.DF, type='choropleth',
+                locations=c("UK","Saudi Arabia","Kazakhstan","Iran", "Greenland","USA", "Italy", "Ireland","Norway","Chile","Egypt","Morocco","South Africa", "China", "Germany", "Australia", "Austria", "The Netherlands", "Switzerland", "Brazil", "Russia", "Mexico", "Thailand", "Canada", "India", "Ukraine", "Colombia"),
+                locationmode='country names',
+                colorscale='Viridis',
+                z=c(10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,600,1000,1050,1200,1800,1400,1100,1250,1300))
+
+plot4
+api_create(plot4, filename = "Followers Geographical Locations")
+# https://plot.ly/~matthann/7/#/
+
+
+
+
+
+
+# wip 
+
+plot5 <- plot_ly(data = language.DF, x = language.DF$languages, y = language.DF$Freq, type = 'scatter', mode = 'markers',
+                 marker = list(size =~ language, opacity = 0.5)) %>%
+  layout(title = 'Repositories vs Following',
+         xaxis = list(showgrid = FALSE),
+         yaxis = list(showgrid = FALSE))
+plot5
+api_create(plot5, filename="Bubble Chart: Top 20 Languages")
+
+
+
 
