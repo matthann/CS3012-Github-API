@@ -44,7 +44,7 @@ gitDF[gitDF$full_name == "matthann/datasharing", "created_at"]
 
 # The below will return the number of followers and public repositories in my personal GitHub.
 myData = fromJSON("https://api.github.com/users/matthann")
-myData$followers       # lots 
+myData$followers      
 myData$public_repos
 
 # The below returns specific details about my followers.
@@ -204,7 +204,7 @@ for (i in 1:length(allusers.DF))
   for (j in 1: length(repos_names))
   {
     repos_url2 = paste("https://api.github.com/repos/", allusers[i], "/", repos_names[j], sep = "")
-    repos2 = GET(repos_url2, g2token)
+    repos2 = GET(repos_url2, gtoken)
     repos2Content = content(repos2)
     repos2.DF = jsonlite::fromJSON(jsonlite::toJSON(repos2Content))
     
@@ -252,21 +252,6 @@ plot4 = plot_ly(allusers.DF, type='choropleth',
 plot4
 api_create(plot4, filename = "Followers Geographical Locations")
 # https://plot.ly/~matthann/7/#/
-
-
-
-
-
-
-# wip 
-
-plot5 <- plot_ly(data = language.DF, x = language.DF$languages, y = language.DF$Freq, type = 'scatter', mode = 'markers',
-                 marker = list(size =~ language, opacity = 0.5)) %>%
-  layout(title = 'Repositories vs Following',
-         xaxis = list(showgrid = FALSE),
-         yaxis = list(showgrid = FALSE))
-plot5
-api_create(plot5, filename="Bubble Chart: Top 20 Languages")
 
 
 
